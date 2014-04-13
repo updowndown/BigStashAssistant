@@ -134,7 +134,7 @@ void CBigStashItem::setPos( BYTE ar_nRow, BYTE ar_nCol )
 	//// 1111 1110 抹掉73
 	m_vItemBuffer[9] = m_vItemBuffer[9] & 0xFE;
 
-	//// 1000 取高
+	//// 1000 取高一位
 	BYTE ar_nRowLowOneBit = ar_nRow & 0x08;
 
 	ar_nRowLowOneBit = ar_nRowLowOneBit >> 3;
