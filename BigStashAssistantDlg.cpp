@@ -51,6 +51,7 @@ END_MESSAGE_MAP()
 
 CBigStashAssistantDlg::CBigStashAssistantDlg(CWnd* pParent /*=NULL*/)
 	: CDialog(CBigStashAssistantDlg::IDD, pParent)
+	, m_strStashType(_T(""))
 {
 	m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
 }
@@ -60,6 +61,7 @@ void CBigStashAssistantDlg::DoDataExchange(CDataExchange* pDX)
 	CDialog::DoDataExchange(pDX);
 	DDX_Text(pDX, IDC_EDIT_PATH, m_strBigStashPath);
 	DDX_Control(pDX, IDC_LIST_LOG, m_listLog);
+	DDX_Text(pDX, IDC_EDIT_STASH_TYPE, m_strStashType);
 }
 
 BEGIN_MESSAGE_MAP(CBigStashAssistantDlg, CDialog)
@@ -71,6 +73,7 @@ BEGIN_MESSAGE_MAP(CBigStashAssistantDlg, CDialog)
 	ON_BN_CLICKED(IDC_BUTTON_CUBE, OnBnClickedButtonCube)
 	ON_BN_CLICKED(IDC_BUTTON_ADD_CUBE_CHOICE, OnBnClickedButtonAddCubeChoice)
 	ON_BN_CLICKED(IDC_BUTTON_SAVE, OnBnClickedButtonSave)
+	ON_BN_CLICKED(IDC_BUTTON_TEST, OnBnClickedButtonTest)
 END_MESSAGE_MAP()
 
 
@@ -101,6 +104,16 @@ BOOL CBigStashAssistantDlg::OnInitDialog()
 	SetIcon(m_hIcon, TRUE);			// 设置大图标
 	SetIcon(m_hIcon, FALSE);		// 设置小图标
 
+	m_listLog.AddString(_T("本工具用于将大箱子中所有无暇宝石合成为完美宝石。"));
+	m_listLog.AddString(_T(""));
+	m_listLog.AddString(_T("请注意："));
+	m_listLog.AddString(_T("1、参与单机交易的朋友，请尽量在取得交易圈同意后再使用本工具；"));
+	m_listLog.AddString(_T("2、使用工具前请备份存档以避免存档损坏；"));
+	m_listLog.AddString(_T("3、合成素材无需特意摆放，合成结果在大箱子的最后几页；"));
+	m_listLog.AddString(_T("4、合成后需点击保存才会真正修改存档文件。"));
+	m_listLog.AddString(_T(""));
+	m_listLog.AddString(_T("有问题可反馈至鈤鈤铺 @updowndown"));
+	
 
 	return TRUE;
 }
@@ -201,7 +214,23 @@ void CBigStashAssistantDlg::OnBnClickedButtonOpenBigStash()
 
 		CBigStashPaser lo_oBigStashPaser;
 
-		lo_oBigStashPaser.parse(lo_pStashData, lo_nStashDataLength, m_oBigStash);
+		if( lo_oBigStashPaser.parse(lo_pStashData, lo_nStashDataLength, m_oBigStash) )
+		{
+			switch( m_oBigStash.BigStashType() )
+			{
+			case PERSONAL_BIG_STASH:
+				m_strStashType = _T("个人箱");
+				break;
+			case SHARE_BIG_STASH:
+				m_strStashType = _T("公共箱");
+				break;
+			default:
+				m_strStashType = _T("");
+				break;
+			}
+
+			UpdateData(FALSE);
+		}
 
 		delete[] lo_pStashData;
 	}
@@ -209,9 +238,9 @@ void CBigStashAssistantDlg::OnBnClickedButtonOpenBigStash()
 
 void CBigStashAssistantDlg::OnBnClickedButtonCube()
 {
-	for( unsigned i = 0; i < g_scvCubeChoices.size(); ++i )
+	for( unsigned i = 0; i < g_scvCubeFormulas.size(); ++i )
 	{
-		S_CubeChoice lo_sCubeChoice = g_scvCubeChoices[i];
+		S_CubeFormula lo_sCubeChoice = g_scvCubeFormulas[i];
 
 		std::map< E_ItemType, int > lo_mapInputItemCount;
 
@@ -318,9 +347,9 @@ void CBigStashAssistantDlg::InitCubeChoiceCombo()
 {
 	m_cmbCubeChoice.ResetContent();
 
-	for( unsigned i = 0; i < g_scvCubeChoices.size(); ++i )
+	for( unsigned i = 0; i < g_scvCubeFormulas.size(); ++i )
 	{
-		m_cmbCubeChoice.AddString( g_scvCubeChoices[i].m_strDescripe );
+		m_cmbCubeChoice.AddString( g_scvCubeFormulas[i].m_strDescripe );
 	}
 
 	if( m_cmbCubeChoice.GetCount() > 0 )
@@ -355,5 +384,31 @@ void CBigStashAssistantDlg::OnBnClickedButtonSave()
 		lo_oFile.Flush();
 
 		lo_oFile.Close();
+	}
+}
+
+void CBigStashAssistantDlg::OnBnClickedButtonTest()
+{
+	for( int i = ITEM_FLAWLESS_RUBY; i <= ITEM_PERFECT_TOPAZ; ++i )
+	{
+		CBigStashPage lo_oPage;
+
+		for( int k = 0; k < 100; ++k )
+		{
+			CBigStashItem lo_oItem = CItemFactory::createItem( (E_ItemType)i );
+
+			if( lo_oItem.isValid() )
+			{
+				BYTE lo_nRow = k / 10;
+
+				BYTE lo_nCol = k % 10;
+
+				lo_oItem.setPos( lo_nRow, lo_nCol );
+
+				lo_oPage.addItem(lo_oItem);
+			}
+		}
+
+		m_oBigStash.addPage(lo_oPage);
 	}
 }

@@ -4,6 +4,14 @@
 
 using std::vector;
 
+enum E_BigStashType
+{
+	PERSONAL_BIG_STASH,
+	SHARE_BIG_STASH,
+	UNKNOWN_BIG_STASH,
+};
+
+
 class CBigStash
 {
 public:
@@ -23,6 +31,9 @@ public:
 	unsigned int PageSize();
 	void PageSize(unsigned int val);
 
+	E_BigStashType BigStashType() const { return m_eBigStashType; }
+	void BigStashType(E_BigStashType val) { m_eBigStashType = val; }
+
 public:
 	void setPage( unsigned index, CBigStashPage& page );
 	bool getPage( unsigned index, CBigStashPage& page );
@@ -40,4 +51,6 @@ private:
 	unsigned int m_nGold;
 
 	std::vector<CBigStashPage> m_vPages;
+
+	E_BigStashType m_eBigStashType;
 };

@@ -3,6 +3,7 @@
 
 CBigStash::CBigStash(void)
 {
+	m_eBigStashType = UNKNOWN_BIG_STASH;
 }
 
 CBigStash::~CBigStash(void)
@@ -58,17 +59,28 @@ std::vector<BYTE> CBigStash::asBytes()
 	std::vector<BYTE> lo_vFileBytes;
 
 	/// 文件头
-	lo_vFileBytes.push_back(0x53);
-	lo_vFileBytes.push_back(0x53);
-	lo_vFileBytes.push_back(0x53);
-	lo_vFileBytes.push_back(0x00);
+	if( m_eBigStashType == SHARE_BIG_STASH )
+	{
+		lo_vFileBytes.push_back(0x53);
+		lo_vFileBytes.push_back(0x53);
+		lo_vFileBytes.push_back(0x53);
+		lo_vFileBytes.push_back(0x00);
+	}
+	else
+	{
+		lo_vFileBytes.push_back(0x43);
+		lo_vFileBytes.push_back(0x53);
+		lo_vFileBytes.push_back(0x54);
+		lo_vFileBytes.push_back(0x4D);
+	}
+	
 
 	/// 版本号
 	lo_vFileBytes.push_back( LOBYTE(m_sVersion) );
 	lo_vFileBytes.push_back( HIBYTE(m_sVersion) );
 
 	/// 金币
-	if( m_nGold > 0 )
+	if( m_eBigStashType == PERSONAL_BIG_STASH || m_nGold > 0 )
 	{
 		lo_vFileBytes.push_back( LOBYTE( LOWORD(m_nGold) ) );
 		lo_vFileBytes.push_back( HIBYTE( LOWORD(m_nGold) ) );

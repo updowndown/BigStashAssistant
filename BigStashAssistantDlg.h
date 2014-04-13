@@ -47,8 +47,10 @@ private:
 private:
 	CListCtrl m_listCubeChoices;
 	
-	std::vector<S_CubeChoice> m_vSelectedChoices;
+	std::vector<S_CubeFormula> m_vSelectedChoices;
 public:
 	afx_msg void OnBnClickedButtonSave();
 	CListBox m_listLog;
+	afx_msg void OnBnClickedButtonTest();
+	CString m_strStashType;
 };

@@ -3,9 +3,9 @@
 
 const static int g_scnMinStashDataLength = 17;
 
-const static BYTE g_scbFileHeader[] = { 0x53, 0x53, 0x53, 0x00 };
+const static BYTE g_scbShareStashFileHeader[] = { 0x53, 0x53, 0x53, 0x00 };
 
-const static int g_scnFileHeaderLength = sizeof(g_scbFileHeader)/sizeof(g_scbFileHeader[0]);
+const static BYTE g_scbPersonalStashFileHeader[] = { 0x43, 0x53, 0x54, 0x4D };
 
 const static BYTE g_scbPageHeader[] = { 0x53, 0x54, 0x00, 0x4A, 0x4D };
 
@@ -31,7 +31,7 @@ bool CBigStashPaser::parse( BYTE* ar_pBigStashData, int ar_nDataLength, CBigStas
 		return false;
 	}
 
-	if( ar_nDataLength < g_scnMinStashDataLength || ar_nDataLength < g_scnFileHeaderLength )
+	if( ar_nDataLength < g_scnMinStashDataLength )
 	{
 		AfxMessageBox("大箱子文件解析失败：大箱子文件长度过短");
 		return false;
@@ -43,7 +43,7 @@ bool CBigStashPaser::parse( BYTE* ar_pBigStashData, int ar_nDataLength, CBigStas
 
 	m_nIndex = 0;
 
-	if( !checkHeader() )
+	if( !parseStatshType(ar_oBigStash) )
 	{
 		AfxMessageBox("大箱子文件解析失败：数据头校验失败");
 		return false;
@@ -99,19 +99,55 @@ bool CBigStashPaser::parseVersion( CBigStash& ar_oBigStash )
 }
 
 
-bool CBigStashPaser::checkHeader()
+bool CBigStashPaser::parseStatshType( CBigStash& ar_oBigStash )
 {
-	for( int i = m_nIndex; i < g_scnFileHeaderLength; ++i )
+	E_BigStashType lo_eBigStashType;
+
+	lo_eBigStashType = SHARE_BIG_STASH;
+
+	for( int i = m_nIndex; i < sizeof(g_scbShareStashFileHeader)/sizeof(g_scbShareStashFileHeader[0]); ++i )
 	{
-		if( m_pBigStashDatas[i] != g_scbFileHeader[i] )
+		if( m_pBigStashDatas[i] != g_scbShareStashFileHeader[i] )
 		{
-			return false;
+			lo_eBigStashType = UNKNOWN_BIG_STASH;
+
+			break;
 		}
 	}
 
-	m_nIndex += g_scnFileHeaderLength;
+	if( lo_eBigStashType != UNKNOWN_BIG_STASH )
+	{
+		m_nIndex += sizeof(g_scbShareStashFileHeader)/sizeof(g_scbShareStashFileHeader[0]);
+		
+		ar_oBigStash.BigStashType( lo_eBigStashType );
 
-	return true;
+		return true;
+	}
+
+	lo_eBigStashType = PERSONAL_BIG_STASH;
+
+	for( int i = m_nIndex; i < sizeof(g_scbPersonalStashFileHeader)/sizeof(g_scbPersonalStashFileHeader[0]); ++i )
+	{
+		if( m_pBigStashDatas[i] != g_scbPersonalStashFileHeader[i] )
+		{
+			lo_eBigStashType = UNKNOWN_BIG_STASH;
+
+			break;;
+		}
+	}
+
+	if( lo_eBigStashType != UNKNOWN_BIG_STASH )
+	{
+		m_nIndex += sizeof(g_scbPersonalStashFileHeader)/sizeof(g_scbPersonalStashFileHeader[0]);
+		
+		ar_oBigStash.BigStashType( lo_eBigStashType );
+
+		return true;
+	}
+
+	ar_oBigStash.BigStashType( lo_eBigStashType );
+
+	return false;
 }
 
 bool CBigStashPaser::parseGoldAndPageSize( CBigStash& ar_oBigStash )
@@ -302,6 +338,14 @@ bool CBigStashPaser::parsePage( CBigStashPage& ar_oPage )
 			{
 				lo_nNextItem = lo_nPageEnd;
 			}
+
+			if( i == ar_oPage.ItemSize()-1 && lo_nNextItem != lo_nPageEnd )
+			{
+				AfxMessageBox(_T("物品信息解析错误"));
+
+				return false;
+			}
+
 
 			int lo_nItemBufferSize = lo_nNextItem-lo_nStartItem;
 

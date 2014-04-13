@@ -11,7 +11,7 @@ public:
 	bool parse( BYTE* ar_pBigStashData, int ar_nDataLength, CBigStash& ar_oBigStash );
 
 private:
-	bool checkHeader();
+	bool parseStatshType( CBigStash& ar_oBigStash );
 
 	bool parseVersion( CBigStash& ar_oBigStash );
 

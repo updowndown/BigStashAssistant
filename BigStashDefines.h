@@ -25,14 +25,14 @@ enum E_ItemType
 
 CString toString( E_ItemType ar_eItemType );
 
-struct S_CubeChoice
+struct S_CubeFormula
 {
 	std::vector<E_ItemType> m_vInputs;
 	std::vector<E_ItemType> m_vOutput;
 	CString m_strDescripe;
 };
 
-extern std::vector<S_CubeChoice> g_scvCubeChoices;
+extern std::vector<S_CubeFormula> g_scvCubeFormulas;
 
 void g_initGlobleVariable();
 
