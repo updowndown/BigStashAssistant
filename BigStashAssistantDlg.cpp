@@ -238,6 +238,10 @@ void CBigStashAssistantDlg::OnBnClickedButtonOpenBigStash()
 
 void CBigStashAssistantDlg::OnBnClickedButtonCube()
 {
+	m_listLog.ResetContent();
+
+	m_listLog.AddString(_T("开始合成..."));
+
 	for( unsigned i = 0; i < g_scvCubeFormulas.size(); ++i )
 	{
 		S_CubeFormula lo_sCubeChoice = g_scvCubeFormulas[i];
@@ -341,6 +345,8 @@ void CBigStashAssistantDlg::OnBnClickedButtonCube()
 			m_listLog.InsertString( m_listLog.GetCount(), strLog);
 		}
 	}
+
+	m_listLog.AddString(_T("合成结束！"));
 }
 
 void CBigStashAssistantDlg::InitCubeChoiceCombo()

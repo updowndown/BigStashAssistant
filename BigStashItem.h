@@ -14,6 +14,9 @@ public:
 	vector<BYTE> asBytes();
 
 public:
+	S_ItemCode getItemCode();
+
+public:
 	bool isValid();
 
 	void setItemBuffer( const BYTE* ar_pData, unsigned ar_nStart, unsigned ar_nSize );
@@ -23,9 +26,6 @@ public:
 
 public:
 	bool isTypeOf( E_ItemType ar_eItemType );
-
-private:
-	bool isSameTo( const BYTE* ar_pData, int lo_nLength, int lo_nStartPos );
 
 private:
 	vector<BYTE> m_vItemBuffer;

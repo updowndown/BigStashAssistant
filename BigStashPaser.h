@@ -26,6 +26,10 @@ private:
 	int findNextPageHeader();
 
 	int findNextItem( int ar_nPageStart, int ar_nPageEnd );
+
+	int findNextItemIdentified( int ar_nPageStart, int ar_nPageEnd );
+
+	int findNextItemNotIdentified( int ar_nPageStart, int ar_nPageEnd );
 private:
 	unsigned short getShortValue( BYTE* ar_pData, int ar_nDataLength, int ar_nIndex );
 

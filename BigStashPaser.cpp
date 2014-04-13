@@ -11,9 +11,9 @@ const static BYTE g_scbPageHeader[] = { 0x53, 0x54, 0x00, 0x4A, 0x4D };
 
 const static int g_scnPageHeaderLength = sizeof(g_scbPageHeader)/sizeof(g_scbPageHeader[0]);
 
-const static BYTE g_scbItemHeader[] = { 0x4A, 0x4D };
+const static BYTE g_scbItemIdentifiedHeader[] = { 0x4A, 0x4D, 0x10 };
 
-const static int g_scnItemHeaderLength = sizeof(g_scbItemHeader)/sizeof(g_scbItemHeader[0]);
+const static BYTE g_scbItemNotIdentifiedHeader[] = { 0x4A, 0x4D, 0x00 };
 
 CBigStashPaser::CBigStashPaser(void)
 {
@@ -64,6 +64,11 @@ bool CBigStashPaser::parse( BYTE* ar_pBigStashData, int ar_nDataLength, CBigStas
 	for( unsigned i = 0; i < ar_oBigStash.PageSize(); ++i )
 	{
 		CBigStashPage lo_oPage;
+
+		if( i == 84 )
+		{
+			i = 84;
+		}
 
 		if( !parsePage(lo_oPage) )
 		{
@@ -318,13 +323,13 @@ bool CBigStashPaser::parsePage( CBigStashPage& ar_oPage )
 
 			CBigStashItem lo_oItem;
 
-			int lo_nNextItem = findNextItem( lo_nStartItem+g_scnItemHeaderLength, lo_nPageEnd );
+			int lo_nNextItem = findNextItem( lo_nStartItem+sizeof(g_scbItemIdentifiedHeader)/sizeof(g_scbItemIdentifiedHeader[0]), lo_nPageEnd );
 
 			BYTE lo_bLocation = m_pBigStashDatas[lo_nNextItem+7]&0x1C;
 
 			while( lo_bLocation == 0x18 )
 			{
-				lo_nNextItem = findNextItem( lo_nNextItem+g_scnItemHeaderLength, lo_nPageEnd );
+				lo_nNextItem = findNextItem( lo_nNextItem+sizeof(g_scbItemIdentifiedHeader)/sizeof(g_scbItemIdentifiedHeader[0]), lo_nPageEnd );
 
 				if( lo_nNextItem < 0 )
 				{
@@ -364,22 +369,80 @@ bool CBigStashPaser::parsePage( CBigStashPage& ar_oPage )
 
 int CBigStashPaser::findNextItem( int ar_nPageStart, int ar_nPageEnd )
 {
+	int lo_nNextItemIdentified = findNextItemIdentified( ar_nPageStart, ar_nPageEnd );
+
+	int lo_nNextItemNotIdentified = findNextItemNotIdentified( ar_nPageStart, ar_nPageEnd );
+
+	if( lo_nNextItemIdentified < 0 )
+	{
+		return lo_nNextItemNotIdentified;
+	}
+	else if( lo_nNextItemNotIdentified < 0 )
+	{
+		return lo_nNextItemIdentified;
+	}
+	else if( lo_nNextItemIdentified < lo_nNextItemNotIdentified )
+	{
+		return lo_nNextItemIdentified;
+	}
+	else
+	{
+		return lo_nNextItemNotIdentified;
+	}
+}
+
+int CBigStashPaser::findNextItemIdentified( int ar_nPageStart, int ar_nPageEnd )
+{
 	int lo_nNextItemIndex = -1;
 
 	for( int i = ar_nPageStart; i < ar_nPageEnd; ++i )
 	{
 		int lo_nLeftSize = ar_nPageEnd - i;
 
-		if( ar_nPageEnd < g_scnItemHeaderLength )
+		if( lo_nLeftSize < sizeof(g_scbItemIdentifiedHeader)/sizeof(g_scbItemIdentifiedHeader[0]) )
 		{
 			break;
 		}
 
 		lo_nNextItemIndex = i;
 
-		for( int j = 0; j < g_scnItemHeaderLength; ++j )
+		for( int j = 0; j < sizeof(g_scbItemIdentifiedHeader)/sizeof(g_scbItemIdentifiedHeader[0]); ++j )
 		{
-			if( m_pBigStashDatas[i+j] != g_scbItemHeader[j] )
+			if( m_pBigStashDatas[i+j] != g_scbItemIdentifiedHeader[j] )
+			{
+				lo_nNextItemIndex = -1;
+
+				break;
+			}
+		}
+
+		if( lo_nNextItemIndex != -1 )
+		{
+			break;
+		}
+	}
+
+	return lo_nNextItemIndex;
+}
+
+int CBigStashPaser::findNextItemNotIdentified( int ar_nPageStart, int ar_nPageEnd )
+{
+	int lo_nNextItemIndex = -1;
+
+	for( int i = ar_nPageStart; i < ar_nPageEnd; ++i )
+	{
+		int lo_nLeftSize = ar_nPageEnd - i;
+
+		if( lo_nLeftSize < sizeof(g_scbItemNotIdentifiedHeader)/sizeof(g_scbItemNotIdentifiedHeader[0]) )
+		{
+			break;
+		}
+
+		lo_nNextItemIndex = i;
+
+		for( int j = 0; j < sizeof(g_scbItemNotIdentifiedHeader)/sizeof(g_scbItemNotIdentifiedHeader[0]); ++j )
+		{
+			if( m_pBigStashDatas[i+j] != g_scbItemNotIdentifiedHeader[j] )
 			{
 				lo_nNextItemIndex = -1;
 

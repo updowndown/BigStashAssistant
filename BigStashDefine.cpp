@@ -1,6 +1,27 @@
 #include "stdafx.h"
 #include "BigStashDefines.h"
 
+static S_ItemCode g_scvItemCodes[ITEM_TYPE_SIZE] =
+{
+	/// 无暇宝石
+	"glr ",
+	"gzv ",
+	"skl ",
+	"glw ",
+	"glb ",
+	"glg ",
+	"gly ",
+
+	/// 完美宝石
+	"glr ",
+	"gzv ",
+	"skl ",
+	"glw ",
+	"glb ",
+	"glg ",
+	"gly ",
+};
+
 std::vector<S_CubeFormula> g_scvCubeFormulas;
 void g_initGlobleVariable()
 {
@@ -102,4 +123,9 @@ CString toString( E_ItemType ar_eItemType )
 	default:
 		return _T("未知的物品");
 	}
+}
+
+S_ItemCode g_getItemCode( E_ItemType ar_eItemType )
+{
+	return g_scvItemCodes[ar_eItemType];
 }

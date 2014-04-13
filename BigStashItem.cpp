@@ -41,67 +41,16 @@ void CBigStashItem::setItemBuffer( const BYTE* ar_pData, unsigned ar_nStart, uns
 
 bool CBigStashItem::isTypeOf( E_ItemType ar_eItemType )
 {
-	switch( ar_eItemType )
-	{
-	case ITEM_FLAWLESS_RUBY:
-		return isSameTo(g_scbFlawlessRuby, sizeof(g_scbFlawlessRuby)/sizeof(g_scbFlawlessRuby[0]), g_scnHeaderLength);
-		break;
-	case ITEM_FLAWLESS_AMETHYST:
-		return isSameTo(g_scbFlawlessAmethyst, sizeof(g_scbFlawlessAmethyst)/sizeof(g_scbFlawlessAmethyst[0]), g_scnHeaderLength);
-		break;
-	case ITEM_FLAWLESS_SKULL:
-		return isSameTo(g_scbFlawlessSkull, sizeof(g_scbFlawlessSkull)/sizeof(g_scbFlawlessSkull[0]), g_scnHeaderLength);
-		break;
-	case ITEM_FLAWLESS_DIAMOND:
-		return isSameTo(g_scbFlawlessDiamond, sizeof(g_scbFlawlessDiamond)/sizeof(g_scbFlawlessDiamond[0]), g_scnHeaderLength);
-		break;
-	case ITEM_FLAWLESS_SAPPHIRE:
-		return isSameTo(g_scbFlawlessSapphire, sizeof(g_scbFlawlessSapphire)/sizeof(g_scbFlawlessSapphire[0]), g_scnHeaderLength);
-		break;
-	case ITEM_FLAWLESS_EMERALD:
-		return isSameTo(g_scbFlawlessEmerald, sizeof(g_scbFlawlessEmerald)/sizeof(g_scbFlawlessEmerald[0]), g_scnHeaderLength);
-		break;
-	case ITEM_FLAWLESS_TOPAZ:
-		return isSameTo(g_scbFlawlessTopaz, sizeof(g_scbFlawlessTopaz)/sizeof(g_scbFlawlessTopaz[0]), g_scnHeaderLength);
-		break;
-	default:
-		return false;
-		break;
-	}
+	S_ItemCode lo_sItemCode = getItemCode();
 
-	return false;
-}
+	S_ItemCode lo_sItemCode2 = g_getItemCode(ar_eItemType);
 
-bool CBigStashItem::isSameTo( const BYTE* ar_pData, int lo_nLength, int lo_nStartPos )
-{
-	if( ar_pData == NULL || lo_nLength <= 0 )
-	{
-		return false;
-	}
-
-	if( m_vItemBuffer.size() != lo_nStartPos+lo_nLength )
-	{
-		return false;
-	}
-
-	bool bIsSame = true;
-
-	for( int i = 0; i < lo_nLength; ++i )
-	{
-		if( m_vItemBuffer[lo_nStartPos+i] != ar_pData[i] )
-		{
-			bIsSame = false;
-
-			break;
-		}
-	}
-
-	return bIsSame;
+	return lo_sItemCode == lo_sItemCode2;
 }
 
 bool CBigStashItem::isValid()
 {
-	return (m_vItemBuffer.size() > 0);
+	return (m_vItemBuffer.size() >= 14);
 }
 
 vector<BYTE> CBigStashItem::asBytes()
@@ -131,7 +80,7 @@ void CBigStashItem::setPos( BYTE ar_nRow, BYTE ar_nCol )
 
 	m_vItemBuffer[8] = m_vItemBuffer[8] | ar_nRowHighThreeBit;
 
-	//// 1111 1110 抹掉73
+	//// 1111 1110 抹掉最后一位
 	m_vItemBuffer[9] = m_vItemBuffer[9] & 0xFE;
 
 	//// 1000 取高一位
@@ -141,4 +90,45 @@ void CBigStashItem::setPos( BYTE ar_nRow, BYTE ar_nCol )
 
 	m_vItemBuffer[9] = m_vItemBuffer[9] | ar_nRowLowOneBit;
 
+}
+
+S_ItemCode CBigStashItem::getItemCode()
+{
+	S_ItemCode lo_sItemCode;
+	
+	char lo_cTest = 'g';
+
+	char lo_cCode = 0;
+
+	lo_cCode = (m_vItemBuffer[9] & 0xF0) >> 4;
+
+	lo_cCode = lo_cCode + ((m_vItemBuffer[10] & 0x0F) << 4);
+
+	lo_sItemCode.m_cItemCode[0] = lo_cCode;
+
+	lo_cCode = 0;
+
+	lo_cCode = (m_vItemBuffer[10] & 0xF0) >> 4;
+
+	lo_cCode = lo_cCode + ((m_vItemBuffer[11] & 0x0F) << 4);
+
+	lo_sItemCode.m_cItemCode[1] = lo_cCode;
+
+	lo_cCode = 0;
+
+	lo_cCode = (m_vItemBuffer[11] & 0xF0) >> 4;
+
+	lo_cCode = lo_cCode + ((m_vItemBuffer[12] & 0x0F) << 4);
+
+	lo_sItemCode.m_cItemCode[2] = lo_cCode;
+
+	lo_cCode = 0;
+
+	lo_cCode = (m_vItemBuffer[12] & 0xF0) >> 4;
+
+	lo_cCode = lo_cCode + ((m_vItemBuffer[13] & 0x0F) << 4);
+
+	lo_sItemCode.m_cItemCode[3] = lo_cCode;
+
+	return lo_sItemCode;
 }
