@@ -35,14 +35,20 @@ protected:
 	DECLARE_MESSAGE_MAP()
 
 private:
+	bool openBigStash( CString ar_strPath, CBigStash& ar_oBigStash );
+
+private:
 	void InitCubeChoiceCombo();
 
 private:
 	CComboBox m_cmbCubeChoice;
 
 	CString m_strBigStashPath;
-
 	CBigStash m_oBigStash;
+
+private:
+	CString m_strSharedBigStashPath;
+	CBigStash m_oSharedBigStash;
 
 private:
 	CListCtrl m_listCubeChoices;
@@ -53,4 +59,8 @@ public:
 	CListBox m_listLog;
 	afx_msg void OnBnClickedButtonTest();
 	CString m_strStashType;
+	int m_nGold;
+	CButton m_btnCube;
+	CButton m_btnSave;
+	CStatic m_staticCostInfo;
 };

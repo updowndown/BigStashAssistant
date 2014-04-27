@@ -13,6 +13,7 @@
 #define new DEBUG_NEW
 #endif
 
+const static int g_scnCostPerCube = 5000;
 
 // 用于应用程序“关于”菜单项的 CAboutDlg 对话框
 
@@ -52,6 +53,7 @@ END_MESSAGE_MAP()
 CBigStashAssistantDlg::CBigStashAssistantDlg(CWnd* pParent /*=NULL*/)
 	: CDialog(CBigStashAssistantDlg::IDD, pParent)
 	, m_strStashType(_T(""))
+	, m_nGold(0)
 {
 	m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
 }
@@ -62,6 +64,10 @@ void CBigStashAssistantDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Text(pDX, IDC_EDIT_PATH, m_strBigStashPath);
 	DDX_Control(pDX, IDC_LIST_LOG, m_listLog);
 	DDX_Text(pDX, IDC_EDIT_STASH_TYPE, m_strStashType);
+	DDX_Text(pDX, IDC_EDIT_MONEY, m_nGold);
+	DDX_Control(pDX, IDC_BUTTON_CUBE, m_btnCube);
+	DDX_Control(pDX, IDC_BUTTON_SAVE, m_btnSave);
+	DDX_Control(pDX, IDC_STATIC_COST_INFO, m_staticCostInfo);
 }
 
 BEGIN_MESSAGE_MAP(CBigStashAssistantDlg, CDialog)
@@ -114,6 +120,15 @@ BOOL CBigStashAssistantDlg::OnInitDialog()
 	m_listLog.AddString(_T(""));
 	m_listLog.AddString(_T("有问题可反馈至鈤鈤铺 @updowndown"));
 	
+	CString lo_strCostInfo;
+
+	lo_strCostInfo.Format(_T("每合成一次花费%d金"), g_scnCostPerCube);
+
+	m_staticCostInfo.SetWindowText(lo_strCostInfo);
+
+	m_btnCube.EnableWindow(FALSE);
+
+	m_btnSave.EnableWindow(FALSE);
 
 	return TRUE;
 }
@@ -172,68 +187,107 @@ void CBigStashAssistantDlg::OnBnClickedButtonOpenBigStash()
 
 	if( m_oFileDialog.DoModal() == IDOK )
 	{
+		m_btnCube.EnableWindow(FALSE);
+		
+		m_btnSave.EnableWindow(FALSE);
+
 		m_strBigStashPath = m_oFileDialog.GetPathName();
 
 		UpdateData(FALSE);
 
-		CFile lo_oFile;
-
-		BOOL lo_bSucc = lo_oFile.Open( m_strBigStashPath,CFile::modeRead|CFile::typeBinary);
-
-		if( !lo_bSucc )
+		if( !openBigStash(m_strBigStashPath, m_oBigStash) )
 		{
-			AfxMessageBox(_T("读取大箱子文件失败！"));
+			AfxMessageBox(_T("大箱子文件打开失败"));
 
 			return;
 		}
 
-		BYTE* lo_pStashData = NULL;
-
-		int lo_nStashDataLength = 0;
-
-		int lo_nBuffLength = (int)lo_oFile.GetLength();
-
-		lo_pStashData = new BYTE[lo_nBuffLength];
-
-		int lo_nReadLength = lo_oFile.Read( lo_pStashData,lo_nBuffLength );
-
-		if( lo_nReadLength != lo_nBuffLength )
+		switch( m_oBigStash.BigStashType() )
 		{
-			delete[] lo_pStashData;
-
-			lo_pStashData = 0;
-
-			AfxMessageBox(_T("读取大箱子文件失败！"));
-
-			return;
-		}
-
-		lo_nStashDataLength = lo_nBuffLength;
-
-		lo_oFile.Close();
-
-		CBigStashPaser lo_oBigStashPaser;
-
-		if( lo_oBigStashPaser.parse(lo_pStashData, lo_nStashDataLength, m_oBigStash) )
-		{
-			switch( m_oBigStash.BigStashType() )
+		case PERSONAL_BIG_STASH:
 			{
-			case PERSONAL_BIG_STASH:
+				int lo_oPos = m_strBigStashPath.ReverseFind('\\');
+
+				m_strSharedBigStashPath = m_strBigStashPath.Left(lo_oPos);
+
+				m_strSharedBigStashPath = m_strSharedBigStashPath + "\\_LOD_SharedStashSave.sss";
+
+				if( !openBigStash(m_strSharedBigStashPath, m_oSharedBigStash) )
+				{
+					AfxMessageBox(_T("公共箱文件打开失败"));
+
+					return;
+				}
+
 				m_strStashType = _T("个人箱");
-				break;
-			case SHARE_BIG_STASH:
-				m_strStashType = _T("公共箱");
-				break;
-			default:
-				m_strStashType = _T("");
-				break;
+
+				m_nGold = m_oSharedBigStash.Gold();
+
+				m_btnCube.EnableWindow(TRUE);
+
+				m_btnSave.EnableWindow(TRUE);
 			}
+			break;
+		case SHARE_BIG_STASH:
+			m_strStashType = _T("公共箱");
 
-			UpdateData(FALSE);
+			m_nGold = m_oBigStash.Gold();
+
+			m_btnCube.EnableWindow(TRUE);
+
+			m_btnSave.EnableWindow(TRUE);
+			break;
+		default:
+			m_strStashType = _T("");
+			break;
 		}
-
-		delete[] lo_pStashData;
+		
+		UpdateData(FALSE);
 	}
+}
+
+
+bool CBigStashAssistantDlg::openBigStash( CString ar_strPath, CBigStash& ar_oBigStash )
+{
+	CFile lo_oFile;
+
+	BOOL lo_bSucc = lo_oFile.Open( ar_strPath,CFile::modeRead|CFile::typeBinary);
+
+	if( !lo_bSucc )
+	{
+		return false;
+	}
+
+	BYTE* lo_pStashData = NULL;
+
+	int lo_nStashDataLength = 0;
+
+	int lo_nBuffLength = (int)lo_oFile.GetLength();
+
+	lo_pStashData = new BYTE[lo_nBuffLength];
+
+	int lo_nReadLength = lo_oFile.Read( lo_pStashData,lo_nBuffLength );
+
+	lo_oFile.Close();
+
+	if( lo_nReadLength != lo_nBuffLength )
+	{
+		delete[] lo_pStashData;
+
+		lo_pStashData = 0;
+
+		return false;
+	}
+
+	lo_nStashDataLength = lo_nBuffLength;
+
+	CBigStashPaser lo_oBigStashPaser;
+
+	lo_bSucc = lo_oBigStashPaser.parse(lo_pStashData, lo_nStashDataLength, ar_oBigStash);
+
+	delete[] lo_pStashData;
+
+	return lo_bSucc;
 }
 
 void CBigStashAssistantDlg::OnBnClickedButtonCube()
@@ -270,9 +324,32 @@ void CBigStashAssistantDlg::OnBnClickedButtonCube()
 				lo_nCubeCount = lo_nMaxCubeCount;
 			}
 		}
-		
+
+		if( lo_nCubeCount > m_nGold/g_scnCostPerCube )
+		{
+			lo_nCubeCount = m_nGold/g_scnCostPerCube;
+		}
+
 		if( lo_nCubeCount > 0 )
 		{
+			int lo_nTotalCost = lo_nCubeCount*g_scnCostPerCube;
+
+			m_nGold = m_nGold - lo_nTotalCost;
+
+			switch( m_oBigStash.BigStashType() )
+			{
+			case PERSONAL_BIG_STASH:
+				m_oSharedBigStash.Gold( m_nGold );
+				break;
+			case SHARE_BIG_STASH:
+				m_oBigStash.Gold( m_nGold );
+				break;
+			default:
+				break;
+			}
+
+			UpdateData(FALSE);
+
 			/// 删除原料
 			for( it = lo_mapInputItemCount.begin(); it != lo_mapInputItemCount.end(); ++it )
 			{
@@ -339,7 +416,7 @@ void CBigStashAssistantDlg::OnBnClickedButtonCube()
 
 				CString strItem = toString(lo_sCubeChoice.m_vOutput[j]);
 
-				strLog.Format(_T("%s %s"), strTemp, strItem );
+				strLog.Format(_T("%s %s, 花费 %d Gold"), strTemp, strItem, lo_nCubeCount*g_scnCostPerCube );
 			}
 
 			m_listLog.InsertString( m_listLog.GetCount(), strLog);
@@ -370,26 +447,81 @@ void CBigStashAssistantDlg::OnBnClickedButtonAddCubeChoice()
 
 void CBigStashAssistantDlg::OnBnClickedButtonSave()
 {
-	std::vector<BYTE> lo_vFileBytes = m_oBigStash.asBytes();
+	std::vector<BYTE> lo_vFileBytes;
 
-	if( lo_vFileBytes.size() > 0 )
+	switch( m_oBigStash.BigStashType() )
 	{
-		CFile lo_oFile;
+	case SHARE_BIG_STASH:
+		lo_vFileBytes = m_oBigStash.asBytes();
 
-		BOOL lo_bSucc = lo_oFile.Open( m_strBigStashPath,CFile::modeWrite|CFile::typeBinary);
-
-		if( !lo_bSucc )
+		if( lo_vFileBytes.size() > 0 )
 		{
-			AfxMessageBox(_T("保存大箱子文件失败！"));
+			CFile lo_oFile;
 
-			return;
+			BOOL lo_bSucc = lo_oFile.Open( m_strBigStashPath,CFile::modeWrite|CFile::typeBinary);
+
+			if( !lo_bSucc )
+			{
+				AfxMessageBox(_T("保存大箱子文件失败！"));
+
+				return;
+			}
+
+			lo_oFile.Write( &lo_vFileBytes[0], (UINT)lo_vFileBytes.size() );
+
+			lo_oFile.Flush();
+
+			lo_oFile.Close();
+		}
+		break;
+	case PERSONAL_BIG_STASH:
+		lo_vFileBytes = m_oBigStash.asBytes();
+
+		if( lo_vFileBytes.size() > 0 )
+		{
+			CFile lo_oFile;
+
+			BOOL lo_bSucc = lo_oFile.Open( m_strBigStashPath,CFile::modeWrite|CFile::typeBinary);
+
+			if( !lo_bSucc )
+			{
+				AfxMessageBox(_T("保存大箱子文件失败！"));
+
+				return;
+			}
+
+			lo_oFile.Write( &lo_vFileBytes[0], (UINT)lo_vFileBytes.size() );
+
+			lo_oFile.Flush();
+
+			lo_oFile.Close();
 		}
 
-		lo_oFile.Write( &lo_vFileBytes[0], (UINT)lo_vFileBytes.size() );
+		lo_vFileBytes = m_oSharedBigStash.asBytes();
 
-		lo_oFile.Flush();
+		if( lo_vFileBytes.size() > 0 )
+		{
+			CFile lo_oFile;
 
-		lo_oFile.Close();
+			BOOL lo_bSucc = lo_oFile.Open( m_strSharedBigStashPath,CFile::modeWrite|CFile::typeBinary);
+
+			if( !lo_bSucc )
+			{
+				AfxMessageBox(_T("保存公共箱子文件失败！"));
+
+				return;
+			}
+
+			lo_oFile.Write( &lo_vFileBytes[0], (UINT)lo_vFileBytes.size() );
+
+			lo_oFile.Flush();
+
+			lo_oFile.Close();
+		}
+		break;
+		break;
+	default:
+		break;
 	}
 }
 
